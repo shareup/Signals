@@ -66,6 +66,115 @@ import Testing
     #expect(emittedValues == [10, 15])
 }
 
+@Test func signalSupportsArrayOfSignals() async throws {
+    let first = Signal(initialValue: "one")
+    let second = Signal(initialValue: "two")
+    let arraySignal = Signal(initialValue: [first, second])
+
+    #expect(arraySignal.value == [first, second])
+
+    actor ArrayCollector {
+        var values: [[Signal<String>]] = []
+
+        func append(_ value: [Signal<String>]) {
+            values.append(value)
+        }
+
+        func count() -> Int {
+            values.count
+        }
+
+        func recorded() -> [[Signal<String>]] {
+            values
+        }
+    }
+
+    let collector = ArrayCollector()
+
+    let task = Task {
+        for await value in arraySignal.values {
+            await collector.append(value)
+            if await collector.count() >= 1 {
+                break
+            }
+        }
+    }
+
+    try await Task.sleep(for: .milliseconds(10))
+
+    // NOTE: Equal array (new instance) should not emit
+    arraySignal.value = [first, second]
+
+    try await Task.sleep(for: .milliseconds(10))
+
+    let third = Signal(initialValue: "three")
+    arraySignal.value = [first, third]
+
+    try await Task.sleep(for: .milliseconds(30))
+    task.cancel()
+
+    let recorded = await collector.recorded()
+    #expect(recorded.count == 1)
+    #expect(recorded[0] == [first, third])
+}
+
+@Test func signalSupportsDictionaryOfSignals() async throws {
+    let title = Signal(initialValue: "Title")
+    let subtitle = Signal(initialValue: "Subtitle")
+    let dictionarySignal = Signal(initialValue: ["title": title])
+
+    #expect(dictionarySignal.value == ["title": title])
+
+    actor DictionaryCollector {
+        var values: [[String: Signal<String>]] = []
+
+        func append(_ value: [String: Signal<String>]) {
+            values.append(value)
+        }
+
+        func count() -> Int {
+            values.count
+        }
+
+        func recorded() -> [[String: Signal<String>]] {
+            values
+        }
+    }
+
+    let collector = DictionaryCollector()
+
+    let task = Task {
+        for await value in dictionarySignal.values {
+            await collector.append(value)
+            if await collector.count() >= 1 {
+                break
+            }
+        }
+    }
+
+    try await Task.sleep(for: .milliseconds(10))
+
+    // NOTE: Equal dictionary should not emit
+    dictionarySignal.value = ["title": title]
+
+    try await Task.sleep(for: .milliseconds(10))
+
+    dictionarySignal.value = [
+        "title": title,
+        "subtitle": subtitle,
+    ]
+
+    try await Task.sleep(for: .milliseconds(30))
+    task.cancel()
+
+    let recorded = await collector.recorded()
+    #expect(recorded.count == 1)
+    #expect(recorded[0] == [
+        "title": title,
+        "subtitle": subtitle,
+    ])
+}
+
 @Test func multipleObserversCanListenToSameSignal() async throws {
     let signal = Signal(initialValue: 0)
 

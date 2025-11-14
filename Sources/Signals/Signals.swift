@@ -63,6 +63,12 @@ public protocol ReadOnlySignal<T>: Sendable {
 
 extension Signal: ReadOnlySignal {}
 
+extension Signal: Equatable {
+    public static func == (lhs: Signal<T>, rhs: Signal<T>) -> Bool {
+        lhs === rhs  // Reference equality - two signals are equal if they're the same instance
+    }
+}
+
 @Observable
 public final class ComputedSignal<T: Equatable & Sendable>: ReadOnlySignal, Sendable {
     private let lock = NSLock()
