@@ -20,6 +20,13 @@ let package = Package(
     targets: [
         .target(
             name: "Signals",
+            swiftSettings: [
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+                .enableUpcomingFeature("InferIsolatedConformances"),
+                .enableUpcomingFeature("InferSendableFromCaptures"),
+                .enableUpcomingFeature("DisableOutwardActorInference"),
+                .enableUpcomingFeature("GlobalActorIsolatedTypesUsability")
+            ]
         ),
         .testTarget(
             name: "SignalsTests",
